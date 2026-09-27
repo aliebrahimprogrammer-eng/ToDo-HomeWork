@@ -1,12 +1,14 @@
 package com.ga.todo.service;
 
+import com.ga.todo.exception.InformationNotFoundException;
 import com.ga.todo.model.Category;
 import com.ga.todo.model.Item;
-import com.ga.todo.exception.InformationNotFoundException;
+import com.ga.todo.model.User;
 import com.ga.todo.repository.CategoryRepository;
 import com.ga.todo.repository.ItemRepository;
+import com.ga.todo.security.MyUserDetails;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,85 +21,205 @@ public class ItemService {
     private CategoryRepository categoryRepository;
     private ItemRepository itemRepository;
 
-    public Item createItem(Long categoryId, Item item){
-        System.out.println("Service calling createItem ==>");
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() ->
-                        new InformationNotFoundException(
-                                "Category with id " + categoryId + " not found"
-                        ));
+    // Get currently logged-in user from JWT
+    private User getCurrentLoggedInUser() {
+
+        MyUserDetails userDetails =
+                (MyUserDetails) SecurityContextHolder
+                        .getContext()
+                        .getAuthentication()
+                        .getPrincipal();
+
+        return userDetails.getUser();
+    }
+
+    // CREATE ITEM
+    public Item createItem(
+            Long categoryId,
+            Item item
+    ) {
+
+        System.out.println("Service: calling createItem");
+
+        User currentUser = getCurrentLoggedInUser();
+
+        // Make sure category belongs to current user
+        Category category =
+                categoryRepository.findByIdAndUserId(
+                        categoryId,
+                        currentUser.getId()
+                );
+
+        if (category == null) {
+
+            throw new InformationNotFoundException(
+                    "Category with id "
+                            + categoryId
+                            + " not found"
+            );
+        }
+
+        // Set category
         item.setCategory(category);
+
+        // Set owner
+        item.setUser(currentUser);
+
         return itemRepository.save(item);
     }
 
-    public List<Item> getItems() {
-        System.out.println("Service calling getItems ==>");
-        return itemRepository.findAll();
-    }
+    // GET ALL ITEMS FOR A CATEGORY
+    public List<Item> getItemsByCategory(
+            Long categoryId
+    ) {
 
-    public Optional<Item> getItem(Long categoryId, Long itemId) {
+        System.out.println(
+                "Service: calling getItemsByCategory"
+        );
 
-        Optional<Item> item = itemRepository.findById(itemId);
+        User currentUser = getCurrentLoggedInUser();
 
-        if (item.isPresent()
-                && item.get().getCategory().getId().equals(categoryId)) {
-            return item;
+        // Make sure category belongs to current user
+        Category category =
+                categoryRepository.findByIdAndUserId(
+                        categoryId,
+                        currentUser.getId()
+                );
+
+        if (category == null) {
+
+            throw new InformationNotFoundException(
+                    "Category with id "
+                            + categoryId
+                            + " not found"
+            );
         }
 
-        return Optional.empty();
+        return itemRepository.findByCategoryIdAndUserId(
+                categoryId,
+                currentUser.getId()
+        );
     }
 
-    public List<Item> getItemsByCategory(Long categoryId) {
-        System.out.println("Service calling getItemsByCategory ==>");
-        return itemRepository.findByCategoryId(categoryId);
+    // GET ONE ITEM
+    public Item getItem(
+            Long categoryId,
+            Long itemId
+    ) {
+
+        System.out.println("Service: calling getItem");
+
+        User currentUser = getCurrentLoggedInUser();
+
+        Item item =
+                itemRepository.findByIdAndUserId(
+                        itemId,
+                        currentUser.getId()
+                );
+
+        if (item == null) {
+
+            throw new InformationNotFoundException(
+                    "Item with id "
+                            + itemId
+                            + " not found"
+            );
+        }
+
+        // Make sure item belongs to requested category
+        if (!item.getCategory().getId().equals(categoryId)) {
+
+            throw new InformationNotFoundException(
+                    "Item with id "
+                            + itemId
+                            + " does not belong to category "
+                            + categoryId
+            );
+        }
+
+        return item;
     }
 
+    // UPDATE ITEM
     public Item updateItem(
             Long categoryId,
             Long itemId,
             Item updatedItem
     ) {
 
-        Optional<Item> optionalItem = itemRepository.findById(itemId);
+        System.out.println("Service: calling updateItem");
 
-        if (optionalItem.isPresent()) {
+        User currentUser = getCurrentLoggedInUser();
 
-            Item item = optionalItem.get();
-
-            if (!item.getCategory().getId().equals(categoryId)) {
-                throw new InformationNotFoundException(
-                        "Item does not belong to category " + categoryId
+        Item item =
+                itemRepository.findByIdAndUserId(
+                        itemId,
+                        currentUser.getId()
                 );
-            }
 
-            item.setName(updatedItem.getName());
-            item.setDescription(updatedItem.getDescription());
-            item.setDueDate(updatedItem.getDueDate());
+        if (item == null) {
 
-            return itemRepository.save(item);
+            throw new InformationNotFoundException(
+                    "Item with id "
+                            + itemId
+                            + " not found"
+            );
         }
 
-        throw new InformationNotFoundException(
-                "Item with id " + itemId + " not found"
-        );
+        // Make sure item belongs to category
+        if (!item.getCategory().getId().equals(categoryId)) {
+
+            throw new InformationNotFoundException(
+                    "Item with id "
+                            + itemId
+                            + " does not belong to category "
+                            + categoryId
+            );
+        }
+
+        item.setName(updatedItem.getName());
+        item.setDescription(updatedItem.getDescription());
+        item.setDueDate(updatedItem.getDueDate());
+
+        return itemRepository.save(item);
     }
 
-    public void deleteItem(Long categoryId, Long itemId) {
+    // DELETE ITEM
+    public void deleteItem(
+            Long categoryId,
+            Long itemId
+    ) {
 
-        Item item = itemRepository.findById(itemId)
-                .orElseThrow(() ->
-                        new InformationNotFoundException(
-                                "Item with id " + itemId + " not found"
-                        )
+        System.out.println("Service: calling deleteItem");
+
+        User currentUser = getCurrentLoggedInUser();
+
+        Item item =
+                itemRepository.findByIdAndUserId(
+                        itemId,
+                        currentUser.getId()
                 );
 
-        if (!item.getCategory().getId().equals(categoryId)) {
+        if (item == null) {
+
             throw new InformationNotFoundException(
-                    "Item does not belong to category " + categoryId
+                    "Item with id "
+                            + itemId
+                            + " not found"
+            );
+        }
+
+        // Make sure item belongs to category
+        if (!item.getCategory().getId().equals(categoryId)) {
+
+            throw new InformationNotFoundException(
+                    "Item with id "
+                            + itemId
+                            + " does not belong to category "
+                            + categoryId
             );
         }
 
         itemRepository.delete(item);
     }
-
 }

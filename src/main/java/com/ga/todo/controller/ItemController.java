@@ -6,42 +6,61 @@ import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping(path = "/api")
 @AllArgsConstructor
 public class ItemController {
 
-    private ItemService itemService;
+    private final ItemService itemService;
 
-    //CREATE ITEM
-    @PostMapping("categories/{categoryId}/items")
+    // CREATE ITEM
+    @PostMapping("/categories/{categoryId}/items")
     public Item createItem(
-            @PathVariable(value = "categoryId") Long categoryId,
+            @PathVariable Long categoryId,
             @RequestBody Item itemObject
-    ){
-        System.out.println("calling createItem from controller");
-        return itemService.createItem(categoryId,itemObject);
+    ) {
+
+        System.out.println(
+                "Controller: calling createItem"
+        );
+
+        return itemService.createItem(
+                categoryId,
+                itemObject
+        );
     }
 
     // GET ITEM BY ID
     @GetMapping("/categories/{categoryId}/items/{itemId}")
-    public Optional<Item> getItem(
+    public Item getItem(
             @PathVariable Long categoryId,
             @PathVariable Long itemId
     ) {
-        System.out.println("Calling getItem from controller");
-        return itemService.getItem(categoryId, itemId);
+
+        System.out.println(
+                "Controller: calling getItem"
+        );
+
+        return itemService.getItem(
+                categoryId,
+                itemId
+        );
     }
 
-    // GET ITEMS BY CATEGORY
+    // GET ALL ITEMS IN CATEGORY
     @GetMapping("/categories/{categoryId}/items")
     public List<Item> getItemsByCategory(
             @PathVariable Long categoryId
     ) {
-        System.out.println("Calling getItemsByCategory from controller");
-        return itemService.getItemsByCategory(categoryId);
+
+        System.out.println(
+                "Controller: calling getItemsByCategory"
+        );
+
+        return itemService.getItemsByCategory(
+                categoryId
+        );
     }
 
     // UPDATE ITEM
@@ -51,7 +70,10 @@ public class ItemController {
             @PathVariable Long itemId,
             @RequestBody Item updatedItem
     ) {
-        System.out.println("Calling updateItem from controller");
+
+        System.out.println(
+                "Controller: calling updateItem"
+        );
 
         return itemService.updateItem(
                 categoryId,
@@ -66,9 +88,14 @@ public class ItemController {
             @PathVariable Long categoryId,
             @PathVariable Long itemId
     ) {
-        System.out.println("Calling deleteItem from controller");
 
-        itemService.deleteItem(categoryId, itemId);
+        System.out.println(
+                "Controller: calling deleteItem"
+        );
+
+        itemService.deleteItem(
+                categoryId,
+                itemId
+        );
     }
-
 }
