@@ -1,5 +1,6 @@
 package com.ga.todo.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -37,5 +38,11 @@ public class Category {
 
     @OneToMany (fetch = FetchType.EAGER, mappedBy = "category", orphanRemoval = true)
     private List<Item> recipeList;
+
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name="user_id")
+    private User user;
+
 
 }
