@@ -3,6 +3,7 @@ package com.ga.todo.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Entity
@@ -33,5 +34,8 @@ public class Category {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    @OneToMany (fetch = FetchType.EAGER, mappedBy = "category", orphanRemoval = true)
+    private List<Item> recipeList;
 
 }
